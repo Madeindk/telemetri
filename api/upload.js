@@ -1,30 +1,25 @@
 const { Buffer } = require('node:buffer');
 const { randomUUID } = require('crypto');
+const fetch = require('node-fetch');   // <--- tilføj
 
 module.exports = async (req, res) => {
-  console.log("🔵 Function started");   // Debug start
+  console.log("🔵 Function started");
 
   if (req.method !== 'POST') {
-    console.log("❌ Wrong method:", req.method);
-    res.status(405).json({ error: 'Method Not Allowed' });
-    return;
+    return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
   try {
     const token = process.env.GITHUB_TOKEN;
     if (!token) {
-      console.error("❌ Missing GITHUB_TOKEN");
-      res.status(500).json({ error: 'Server not configured (missing GITHUB_TOKEN)' });
-      return;
+      return res.status(500).json({ error: 'Missing GITHUB_TOKEN' });
     }
 
     const payload = typeof req.body === 'object' ? req.body : JSON.parse(req.body || '{}');
-    console.log("📦 Payload received:", payload);
+    console.log("📦 Payload:", payload);
 
     if (!payload || !payload.log) {
-      console.error("❌ No log field in payload");
-      res.status(400).json({ error: 'Missing base64 CSV in payload.log' });
-      return;
+      return res.status(400).json({ error: 'Missing base64 CSV in payload.log' });
     }
 
     const owner = 'Madeindk';
@@ -51,7 +46,7 @@ module.exports = async (req, res) => {
     };
 
     const putFile = async (path, base64Content, message) => {
-      console.log(`➡️ Uploading ${path}`);
+      console.log("➡️ Uploading", path);
       const resp = await fetch(
         `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`,
         {
@@ -64,13 +59,9 @@ module.exports = async (req, res) => {
           body: JSON.stringify({ message, content: base64Content, branch })
         }
       );
-
       const text = await resp.text();
-      console.log(`⬅️ GitHub response for ${path}:`, text);
-
-      if (!resp.ok) {
-        throw new Error(`GitHub upload failed ${resp.status}: ${text}`);
-      }
+      console.log("⬅️ GitHub response:", text);
+      if (!resp.ok) throw new Error(`GitHub upload failed ${resp.status}: ${text}`);
       return JSON.parse(text);
     };
 
@@ -81,11 +72,10 @@ module.exports = async (req, res) => {
       `Add metadata ${uid}`
     );
 
-    console.log("✅ Upload done:", { csvPath, jsonPath });
-    res.status(200).json({ ok: true, csv: csvPath, meta: jsonPath });
+    return res.status(200).json({ ok: true, csv: csvPath, meta: jsonPath });
 
   } catch (e) {
-    console.error("🔥 ERROR in upload.js:", e);
-    res.status(500).json({ error: e?.message || 'Upload failed' });
+    console.error("🔥 ERROR:", e);
+    return res.status(500).json({ error: e?.message || 'Upload failed' });
   }
 };
