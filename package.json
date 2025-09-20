@@ -1,1 +1,8 @@
-{ "name": "reflex-relay", "version": "1.0.0", "private": true }
+{
+  "name": "telemetry-relay",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  }
+}
